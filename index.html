@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--or:#E8490F;--dk:#1A1A1A;--md:#444;--mu:#777;--bg:#F4F2EF;--wh:#fff;--bd:#E0DDD6;--or2:#c03600}
+html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--dk)}
+
+/* PASSWORD */
+#pw{position:fixed;inset:0;background:linear-gradient(145deg,#E8490F,#c03600);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+#pw.out{opacity:0;pointer-events:none}
+.pw-inner{display:flex;flex-direction:column;align-items:center;gap:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:44px 52px}
+.pw-inner h2{color:#fff;font-size:20px;font-weight:500}
+.pw-inner p{color:rgba(255,255,255,.65);font-size:13px}
+.pw-row{display:flex;gap:8px}
+#pi{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:10px 16px;color:#fff;font-size:15px;letter-spacing:2px;outline:none;width:200px}
+#pi::placeholder{letter-spacing:0;color:rgba(255,255,255,.45)}
+#pb{background:#fff;color:#E8490F;border:none;border-radius:8px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer}
+#pe{color:rgba(255,255,255,.85);font-size:13px;height:16px}
+
+/* APP SHELL */
+#app{display:none;height:100vh;width:100vw;flex-direction:column;overflow:hidden}
+#app.on{display:flex}
+
+/* TOP BAR */
+#bar{height:52px;background:#fff;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;z-index:50}
+.bar-logo{display:flex;align-items:center;gap:10px}
+.bar-box{background:var(--or);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:5px}
+.bar-title{font-size:13px;font-weight:600;color:var(--or)}
+.bar-right{display:flex;align-items:center;gap:12px}
+.slide-counter{font-size:12px;color:var(--mu)}
+
+/* CAROUSEL */
+#carousel{flex:1;overflow:hidden;position:relative;width:100%}
+#track{display:flex;height:100%;width:100%;transition:transform .45s cubic-bezier(.4,0,.2,1)}
+.slide{min-width:100vw;width:100vw;height:100%;overflow-y:auto;padding:48px 64px 80px;flex-shrink:0}
+@media(max-width:700px){.slide{padding:28px 20px 80px}}
+
+/* slide header strip */
+.sl-num{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--or);margin-bottom:8px}
+.sl-title{font-size:28px;font-weight:300;line-height:1.2;margin-bottom:6px;max-width:700px}
+.sl-title b{font-weight:600}
+.sl-sub{font-size:15px;color:var(--mu);line-height:1.6;max-width:640px;margin-bottom:36px}
+
+/* SLIDE ZERO — hero */
+#slide-0{background:linear-gradient(145deg,#E8490F,#c03600);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:64px 80px}
+#slide-0 .sl-num{color:rgba(255,255,255,.6)}
+#slide-0 .sl-title{font-size:38px;color:#fff;max-width:600px}
+#slide-0 .sl-sub{color:rgba(255,255,255,.78);max-width:520px}
+.hero-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.hchip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;padding:6px 16px;border-radius:20px;cursor:pointer;transition:all .2s}
+.hchip:hover{background:rgba(255,255,255,.85);color:#E8490F;font-weight:600}
+
+/* ARROW NAV */
+#prev-btn,#next-btn{position:fixed;top:50%;transform:translateY(-50%);background:#fff;border:1px solid var(--bd);width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;font-size:18px;color:var(--md);transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#prev-btn{left:14px}
+#next-btn{right:14px}
+#prev-btn:hover,#next-btn:hover{background:var(--or);color:#fff;border-color:var(--or)}
+#prev-btn.hidden,#next-btn.hidden{opacity:0;pointer-events:none}
+
+/* PROGRESS BAR */
+#progress{position:fixed;bottom:0;left:0;right:0;height:3px;background:var(--bd);z-index:200}
+#progress-fill{height:100%;background:var(--or);transition:width .4s ease}
+
+/* NAV MODAL */
+#nm{position:fixed;inset:0;z-index:500;pointer-events:none}
+#nm-bd{position:absolute;inset:0;background:rgba(15,5,0,.5);opacity:0;transition:opacity .35s}
+#nm-panel{position:absolute;inset:0;display:flex;flex-direction:column;transform:scale(.96) translateY(10px);opacity:0;transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .35s}
+#nm.open{pointer-events:all}
+#nm.open #nm-bd{opacity:1}
+#nm.open #nm-panel{transform:scale(1) translateY(0);opacity:1}
+.nm-head{background:linear-gradient(145deg,#E8490F,#c03600);padding:28px 36px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nm-head h2{color:#fff;font-size:18px;font-weight:400}
+.nm-head h2 b{font-weight:600}
+.nm-close-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer}
+.nm-body{flex:1;overflow-y:auto;padding:28px 36px;background:var(--bg)}
+.nm-group-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--mu);margin:18px 0 10px}
+.nm-group-lbl:first-child{margin-top:0}
+.nm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.nm-card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.nm-card:hover{border-color:var(--or);transform:translateY(-2px)}
+.nm-card.cur{border:2px solid var(--or);background:#FEF0EB}
+.nm-card-num{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--or);margin-bottom:4px}
+.nm-card-title{font-size:13px;font-weight:600;color:var(--dk);line-height:1.3;margin-bottom:4px}
+.nm-card-desc{font-size:11px;color:var(--mu);line-height:1.4}
+
+/* NAV FLOAT BTN */
+#nav-float{position:fixed;bottom:28px;right:28px;z-index:400;background:var(--or);color:#fff;border:none;border-radius:50px;padding:13px 22px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 4px 18px rgba(232,73,15,.4);transition:all .2s}
+#nav-float:hover{background:var(--or2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(232,73,15,.5)}
+.hb{display:flex;flex-direction:column;gap:4px}
+.hb span{display:block;width:15px;height:1.5px;background:#fff;border-radius:2px}
+
+/* REUSABLE COMPONENTS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:700px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:20px}
+.lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:10px}
+.lbl-or{color:var(--or)}
+.pill{display:inline-block;font-size:11px;padding:3px 10px;border-radius:7px;font-weight:600}
+.pm{background:#FEF0EB;color:#c03600}
+.pc{background:#F0FDF4;color:#15803D}
+.ps{background:#FFF8E1;color:#B45309}
+.chevs{display:flex;flex-direction:column;gap:7px}
+.chev{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--md);line-height:1.5}
+.chev::before{content:'›';color:var(--or);font-size:16px;line-height:1.3;flex-shrink:0}
+.hl-box{background:rgba(232,73,15,.05);border:1px solid rgba(232,73,15,.18);border-radius:10px;padding:20px}
+.note{background:#F8F7F4;border:1px solid var(--bd);border-radius:8px;padding:14px;font-size:13px;color:var(--mu);line-height:1.5}
+.gr-box{background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:14px}
+.rd-box{background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:14px}
+.cav{background:#FFF8E1;border:1px solid #FDE68A;border-radius:8px;padding:14px;font-size:13px;color:#92400E;line-height:1.5}
+.or-bar{background:var(--or);color:#fff;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:500;margin:18px 0 12px}
+.bdg{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;display:inline-block;margin-bottom:4px}
+.bd-r{background:#FEF0EB;color:#E8490F}.bd-a{background:#FFF8E1;color:#B45309}
+.bd-c{background:#EFF6FF;color:#1D4ED8}.bd-i{background:#F0FDF4;color:#15803D}
+.bd-d{background:#F3E8FF;color:#7E22CE}
+table.dt{width:100%;border-collapse:collapse;font-size:12px}
+table.dt th{background:#F8F7F4;padding:7px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--bd);font-size:11px}
+table.dt td{padding:7px 10px;border-bottom:1px solid var(--bd);vertical-align:top;line-height:1.5}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr:hover td{background:#FAFAF8}
+
+/* INTERACTIVE — tabs */
+.tabs{display:flex;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:4px;gap:3px;margin-bottom:20px;overflow-x:auto}
+.tab{background:none;border:none;padding:8px 16px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--mu);white-space:nowrap;transition:all .2s}
+.tab.on{background:var(--or);color:#fff;font-weight:600}
+.tab-panel{display:none}.tab-panel.on{display:block}
+
+/* INTERACTIVE — accordion */
+.acc-item{border-bottom:1px solid var(--bd)}
+.acc-item:first-child{border-top:1px solid var(--bd)}
+.acc-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 0;cursor:pointer;font-size:14px;font-weight:500;color:var(--dk)}
+.acc-hd:hover{color:var(--or)}
+.acc-arr{font-size:18px;color:var(--or);transition:transform .25s;flex-shrink:0}
+.acc-body{display:none;padding:0 0 16px;font-size:13px;color:var(--mu);line-height:1.6}
+.acc-body.on{display:block}
+.acc-arr.on{transform:rotate(90deg)}
+
+/* INTERACTIVE — checklist */
+.ck-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd);cursor:pointer}
+.ck-row:last-child{border:none}
+.ck-box{width:18px;height:18px;border:1.5px solid var(--bd);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s}
+.ck-box.on{background:var(--or);border-color:var(--or);color:#fff}
+.ck-lbl{font-size:13px;color:var(--mu);line-height:1.4}
+.ck-lbl.on{text-decoration:line-through;color:#bbb}
+.ck-bar{background:var(--bd);border-radius:4px;height:5px;margin-top:8px;overflow:hidden}
+.ck-fill{background:var(--or);height:100%;border-radius:4px;transition:width .3s}
+
+/* INTERACTIVE — moscow toggle */
+.mc-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.mc-tab{border:2px solid;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:#fff}
+.mc-tab[data-v="must"]{border-color:#E8490F;color:#c03600}
+.mc-tab[data-v="must"].on,.mc-tab[data-v="must"]:hover{background:#FEF0EB}
+.mc-tab[data-v="should"]{border-color:#F59E0B;color:#B45309}
+.mc-tab[data-v="should"].on,.mc-tab[data-v="should"]:hover{background:#FFF8E1}
+.mc-tab[data-v="could"]{border-color:#22C55E;color:#15803D}
+.mc-tab[data-v="could"].on,.mc-tab[data-v="could"]:hover{background:#F0FDF4}
+.mc-tab[data-v="wont"]{border-color:#9CA3AF;color:#4B5563}
+.mc-tab[data-v="wont"].on,.mc-tab[data-v="wont"]:hover{background:#F3F4F6}
+.mc-detail{border-radius:12px;padding:24px;border:2px solid;animation:fi .2s ease}
+.mc-detail[data-v="must"]{background:#FEF0EB;border-color:#E8490F}
+.mc-detail[data-v="should"]{background:#FFF8E1;border-color:#F59E0B}
+.mc-detail[data-v="could"]{background:#F0FDF4;border-color:#22C55E}
+.mc-detail[data-v="wont"]{background:#F3F4F6;border-color:#9CA3AF}
+.mc-detail h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.mc-detail[data-v="must"] h3{color:#c03600}
+.mc-detail[data-v="should"] h3{color:#D97706}
+.mc-detail[data-v="could"] h3{color:#15803D}
+.mc-detail[data-v="wont"] h3{color:#4B5563}
+
+/* INTERACTIVE — stat counters */
+.stat-big{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:22px;text-align:center}
+.stat-big .n{font-size:32px;font-weight:300;color:var(--or);line-height:1}
+.stat-big .l{font-size:12px;color:var(--mu);margin-top:6px;line-height:1.4}
+
+/* persona lane */
+.p-lane{flex:1;border-right:1px solid var(--bd);padding:16px}
+.p-lane:last-child{border-right:none}
+.p-lhdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:12px}
+.p-sm{background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px}
+.p-sm h5{font-size:13px;font-weight:600;margin-bottom:3px}
+.p-sm p{font-size:12px;color:var(--mu);line-height:1.4}
+
+/* lc grid */
+.lc-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:700px){.lc-g{grid-template-columns:1fr}}
+.lc-c{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px}
+.lc-c h4{font-size:13px;font-weight:600;color:var(--or);margin-bottom:10px}
+.lc-sub{font-size:12px;font-weight:600;color:var(--dk);margin:8px 0 4px}
+.lc-i{font-size:12px;color:var(--mu);padding-left:12px;position:relative;line-height:1.5;margin-bottom:3px}
+.lc-i::before{content:'•';position:absolute;left:0;color:var(--or)}
+.adop{background:var(--or);border-radius:8px;padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px}
+.adop-i{color:#fff;font-size:12px;display:flex;align-items:center;gap:6px}
+
+/* process steps interactive */
+.steps-row{display:flex;gap:0;align-items:stretch;margin-bottom:20px}
+.step-btn{flex:1;background:#fff;border:1px solid var(--bd);border-right:none;padding:14px 10px;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+.step-btn:first-child{border-radius:10px 0 0 10px}
+.step-btn:last-child{border-right:1px solid var(--bd);border-radius:0 10px 10px 0}
+.step-btn:hover{background:#FEF0EB}
+.step-btn.on{background:var(--or);border-color:var(--or);color:#fff}
+.step-btn .sn{width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.step-btn.on .sn{background:rgba(255,255,255,.25)}
+.step-btn .sl{font-size:11px;font-weight:600;line-height:1.3}
+.step-btn .sd{font-size:10px;opacity:.7}
+.step-content{display:none;animation:fi .22s ease}
+.step-content.on{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.step-content.on{grid-template-columns:1fr}}
+
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* how-to flow */
+.flow-col{display:flex;flex-direction:column;gap:10px}
+.flow-step{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+.flow-step-n{width:26px;height:26px;background:var(--or);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.flow-step-body h4{font-size:13px;font-weight:600;margin-bottom:3px}
+.flow-step-body p{font-size:12px;color:var(--mu);line-height:1.4}
+.flow-arrow{text-align:center;color:var(--or);font-size:16px;line-height:1}
+
+/* cap filter */
+.cap-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.cf-btn{background:#fff;border:1px solid var(--bd);border-radius:7px;padding:5px 14px;font-size:12px;cursor:pointer;color:var(--mu);transition:all .15s}
+.cf-btn.on,.cf-btn:hover{background:var(--or);color:#fff;border-color:var(--or)}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD -->
+<div id="pw">
+  <div class="pw-inner">
+    <h2>DPI Playbook</h2>
+    <p>Large Molecule Drug Substance · GSK</p>
+    <div class="pw-row">
+      <input id="pi" type="password" placeholder="Enter password" />
+      <button id="pb" onclick="checkPw()">Enter</button>
+    </div>
+    <div id="pe"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="bar">
+    <div class="bar-logo">
+      <div class="bar-box">GSK</div>
+      <span class="bar-title">DPI Playbook</span>
+    </div>
+    <div class="bar-right">
+      <span class="slide-counter" id="ctr">1 / 13</span>
+    </div>
+  </div>
+
+  <div id="carousel">
+    <div id="track">
+
+      <!-- SLIDE 0: HERO -->
+      <div class="slide" id="slide-0">
+        <div class="sl-num">Digital Process Intelligence</div>
+        <div class="sl-title"><b>DPI Playbook</b><br>Large Molecule Drug Substance</div>
+        <div class="sl-sub">Everything you need to know about our DPI process, models and implementation plans to ensure we consistently drive value across the business.</div>
+        <div class="hero-chips">
+          <div class="hchip" onclick="goTo(1)">Executive Summary</div>
+          <div class="hchip" onclick="goTo(3)">Digital Capabilities</div>
+          <div class="hchip" onclick="goTo(6)">PAT Phases</div>
+          <div class="hchip" onclick="goTo(5)">Personas</div>
+          <div class="hchip" onclick="goTo(8)">Readiness</div>
+          <div class="hchip" onclick="goTo(11)">MoSCoW</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 1: EXEC SUMMARY -->
+      <div class="slide">
+        <div class="sl-num">01 · Overview</div>
+        <div class="sl-title"><b>Executive</b> Summary</div>
+        <div class="sl-sub">The Playbook serves three primary audiences and defines standard governance for deploying digital models across the Large Molecule modality.</div>
+        <div class="hl-box" style="margin-bottom:22px">
+          <div class="lbl lbl-or">Purpose</div>
+          <p style="font-size:14px;line-height:1.7">To provide sites, leaders and project teams with the enterprise endorsed framework that establishes mandated, platform-aligned digital capabilities across all sites and provides an <strong>evidence-based, value-focused framework</strong> for digital process intelligence adoption.</p>
+        </div>
+        <div class="g3" style="margin-bottom:22px">
+          <div class="card"><div class="lbl lbl-or">For Business Leaders</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Govern platform-aligned digital investments to maximise ROI and scale evidence-based value across the network.</p></div>
+          <div class="card"><div class="lbl lbl-or">For Sites</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Deploy mandated digital capabilities using standardised guidance to deliver proven operational value.</p></div>
+          <div class="card"><div class="lbl lbl-or">For Project Teams / CMC / Molecule Stewards</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Embed mandated digital capabilities into CMC development plans with defined work packages, resources, timelines and transfer readiness.</p></div>
+        </div>
+        <div class="hl-box"><div class="lbl lbl-or">Value &amp; Impact</div><div class="chevs"><div class="chev">Maximise digital ROI across the enterprise</div><div class="chev">Reduce duplication of effort and local reinvention</div><div class="chev">Minimise risk and cost through standardisation</div><div class="chev">Enable faster, more confident decision-making</div></div></div>
+      </div>
+
+      <!-- SLIDE 2: WHAT'S INCLUDED -->
+      <div class="slide">
+        <div class="sl-num">02 · Overview</div>
+        <div class="sl-title"><b>What's</b> Included</div>
+        <div class="sl-sub">A structured approach applicable to any asset within the Large Molecule Drug Substance modality — asset agnostic, flexible and data-driven.</div>
+        <div class="g3" style="margin-bottom:20px">
+          <div class="card"><div class="lbl lbl-or">How to use this playbook</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Step-by-step guide for applying the playbook to any large molecule asset.</p></div>
+          <div class="card"><div class="lbl lbl-or">Business &amp; Value Use Case</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Evidence for workforce sustainability and yield improvement through digital adoption.</p></div>
+          <div class="card"><div class="lbl lbl-or">Modality Overview: Digital Capabilities &amp; Models</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Core digital capabilities, models, and equipment with MoSCoW prioritisation.</p></div>
+          <div class="card"><div class="lbl lbl-or">Implementation Process</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Clear deployment instructions including resource and logistics considerations.</p></div>
+          <div class="card"><div class="lbl lbl-or">Site Pre-requisites &amp; Considerations</div><p style="font-size:13px;color:var(--mu);line-height:1.55">Readiness checklist for equipment, resources, and process compatibility.</p></div>
+        </div>
+        <div class="card" style="background:#F8F7F4"><div class="lbl">Key features</div><div class="g3"><div><p style="font-size:13px;font-weight:600;margin-bottom:4px">Asset Agnostic</p><p style="font-size:12px;color:var(--mu)">Applicable to all assets/products within the large molecule modality.</p></div><div><p style="font-size:13px;font-weight:600;margin-bottom:4px">Flexible &amp; Scalable</p><p style="font-size:12px;color:var(--mu)">Supports both current and future assets, ensuring long-term adaptability.</p></div><div><p style="font-size:13px;font-weight:600;margin-bottom:4px">Data-Driven Guidance</p><p style="font-size:12px;color:var(--mu)">Validated models driving operational excellence and workforce sustainability.</p></div></div></div>
+      </div>
+
+      <!-- SLIDE 3: HOW TO USE — interactive -->
+      <div class="slide">
+        <div class="sl-num">03 · Process</div>
+        <div class="sl-title"><b>How to Use</b> the Playbook</div>
+        <div class="sl-sub">Select your role to see the steps relevant to you.</div>
+        <div class="tabs" id="htabs">
+          <button class="tab on" onclick="htab('bl',this)">Business Leaders</button>
+          <button class="tab" onclick="htab('sites',this)">Sites</button>
+          <button class="tab" onclick="htab('pt',this)">Project Teams</button>
+        </div>
+        <div id="ht-bl" class="tab-panel on">
+          <div class="flow-col">
+            <div class="flow-step"><div class="flow-step-n">1</div><div class="flow-step-body"><h4>Validate Strategic Alignment</h4><p>Confirm digital capability is mandated and platform-aligned.</p></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-step-n">2</div><div class="flow-step-body"><h4>Review Evidence of Value</h4><p>Assess proven metrics, impact and scalability.</p></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-step-n">3</div><div class="flow-step-body"><h4>Govern Adoption</h4><p>Ensure sites follow standardised deployment.</p></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-step-n">4</div><div class="flow-step-body"><h4>Monitor ROI &amp; Network Impact</h4><p>Track performance across sites and scale success.</p></div></div>
+          </div>
+          <div class="gr-box" style="margin-top:16px"><div class="lbl">Result</div><div class="chevs"><div class="chev">Maximised platform ROI</div><div class="chev">Reduced reinvention</div><div class="chev">Controlled delivery risk</div><div class="chev">Faster, confident decisions</div></div></div>
+        </div>
+        <div id="ht-sites" class="tab-panel">
+          <div class="flow-col">
+            <div class="flow-step"><div class="flow-step-n">1</div><div class="flow-step-body"><h4>Assess Readiness</h4><p>Review pre-requisites: data, systems, equipment, roles — identify gaps.</p></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-step-n">2</div><div class="flow-step-body"><h4>Confirm Digital Capabilities</h4><p>Select capabilities required for your use case as defined by MoSCoW.</p></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-step-n">3</div><div class="flow-step-body"><h4>Deploy Using Standardised Guidance</h4><p>Follow defined implementation steps and governance.</p></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-step-n">4</div><div class="flow-step-body"><h4>Track &amp; Report Value</h4><p>Measure KPIs and share outcomes.</p></div></div>
+          </div>
+          <div class="gr-box" style="margin-top:16px"><div class="lbl">Result</div><div class="chevs"><div class="chev">Reduced risk</div><div class="chev">Faster deployment</div><div class="chev">Avoided duplication</div><div class="chev">Proven operational value</div></div></div>
+        </div>
+        <div id="ht-pt" class="tab-panel">
+          <div class="note">Project teams deliver digital-first ambition through enterprise engagement of governance and sites. Key responsibilities include embedding mandated digital capabilities into CMC development plans, defining required modelling work packages, and ensuring transfer readiness for internal or external manufacturing sites (including CMOs).</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 4: DIGITAL CAPABILITIES — filterable -->
+      <div class="slide">
+        <div class="sl-num">04 · Capabilities</div>
+        <div class="sl-title"><b>Digital Capabilities</b> 2K + 5K</div>
+        <div class="sl-sub">Filter by zone or priority. All capabilities carry estimated timelines and resource requirements.</div>
+        <div class="cap-filter">
+          <button class="cf-btn on" onclick="filterCap('all',this)">All</button>
+          <button class="cf-btn" onclick="filterCap('up',this)">Upstream</button>
+          <button class="cf-btn" onclick="filterCap('dn',this)">Downstream</button>
+          <button class="cf-btn" onclick="filterCap('must',this)">Must Have</button>
+          <button class="cf-btn" onclick="filterCap('could',this)">Could Have</button>
+        </div>
+        <div id="cap-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+
+      <!-- SLIDE 5: PERSONAS — interactive lanes -->
+      <div class="slide">
+        <div class="sl-num">05 · People</div>
+        <div class="sl-title"><b>Site Deployment</b> Personas</div>
+        <div class="sl-sub">Three deployment phases with defined RACI roles. Click a role to expand responsibilities.</div>
+        <div style="border:1px solid var(--bd);border-radius:12px;overflow:hidden;display:flex;margin-bottom:20px">
+          <div class="p-lane" style="background:#FEF0EB">
+            <div class="p-lhdr" style="color:#c03600">Innovation &amp; Exploration</div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-d">Explore</div><h5>R&amp;D Data Science &amp; DPI Team</h5><p>Identify high-value digital opportunities aligned with operational challenges or specific drug substance assets.</p></div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-d">Decide</div><h5>Molecule Stewards</h5><p>Primary decision-makers selecting digital models for specific large molecule assets.</p></div>
+          </div>
+          <div class="p-lane" style="background:#FFF8E1">
+            <div class="p-lhdr" style="color:#D97706">Approval / Governance</div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-a">Gate</div><h5>DPI Governance Gateway</h5><p>All proposed models pass through for 'Approved' or 'Not Approved' based on strategic alignment.</p></div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-a">Align</div><h5>Governance Body</h5><p>Ensures platform-aligned investment to maximise ROI and prevent local reinvention.</p></div>
+          </div>
+          <div class="p-lane" style="background:#F0FDF4">
+            <div class="p-lhdr" style="color:#15803D">Manufacturing / Ops</div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-a">A</div><h5>DPI Team</h5><p>Accountable for successful implementation.</p></div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-r">R</div><h5>The Modeller</h5><p>Responsible for technical execution.</p></div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-i">I</div><h5>Site Leadership</h5><p>Informed once approved.</p></div>
+            <div class="p-sm" style="background:rgba(255,255,255,.6)"><div class="bdg bd-c">C</div><h5>Data Scientists</h5><p>Act as strategic advisors.</p></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="lbl lbl-or">Project Delivery &amp; End Users</div><p style="font-size:13px;color:var(--mu)">Project Planning &amp; Delivery Teams coordinate to industrialise tools for site-wide use. End Users interact continuously to drive consistent harvest operations and yield improvements.</p></div>
+          <div class="card"><div class="lbl lbl-or">Model Validation: Molecule Stewards</div><p style="font-size:13px;color:var(--mu)">Stewards re-engage to validate that models meet original R&amp;D intent.</p></div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6: PAT OVERVIEW -->
+      <div class="slide">
+        <div class="sl-num">06 · PAT</div>
+        <div class="sl-title"><b>PAT Implementation</b> Overview</div>
+        <div class="sl-sub">Process Analytical Technology enables inline monitoring, real-time decisions, and closed-loop control. Select a phase below to explore.</div>
+        <div class="g2" style="margin-bottom:20px">
+          <div class="card"><div class="lbl lbl-or">PAT is used to:</div><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:flex-start;gap:8px"><div style="width:6px;height:6px;background:var(--or);border-radius:50%;margin-top:5px;flex-shrink:0"></div><p style="font-size:13px;color:var(--mu);line-height:1.5"><strong style="color:var(--dk)">Monitor analytes in-line</strong> — removes the need for conventional offline analyzers.</p></div>
+            <div style="display:flex;align-items:flex-start;gap:8px"><div style="width:6px;height:6px;background:var(--or);border-radius:50%;margin-top:5px;flex-shrink:0"></div><p style="font-size:13px;color:var(--mu);line-height:1.5"><strong style="color:var(--dk)">Enable real-time decision-making</strong> — shortens batch cycle time and increases efficiency.</p></div>
+            <div style="display:flex;align-items:flex-start;gap:8px"><div style="width:6px;height:6px;background:var(--or);border-radius:50%;margin-top:5px;flex-shrink:0"></div><p style="font-size:13px;color:var(--mu);line-height:1.5"><strong style="color:var(--dk)">Integrate with process control</strong> — DeltaV, OSI-PI, enabling closed loop feed control.</p></div>
+            <div style="display:flex;align-items:flex-start;gap:8px"><div style="width:6px;height:6px;background:var(--or);border-radius:50%;margin-top:5px;flex-shrink:0"></div><p style="font-size:13px;color:var(--mu);line-height:1.5"><strong style="color:var(--dk)">Data sources:</strong> FIL, OsiPI, sensors &amp; instruments.</p></div>
+          </div></div>
+          <div>
+            <div class="lbl" style="margin-bottom:12px">5-phase lifecycle — click to navigate</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onclick="goTo(7);setTimeout(()=>showStep(0),300)"><div style="width:26px;height:26px;background:var(--or);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</div><div><strong style="font-size:13px">Foundations</strong> <span style="font-size:11px;color:var(--mu)">· Varies</span></div></div>
+              <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onclick="goTo(7);setTimeout(()=>showStep(1),300)"><div style="width:26px;height:26px;background:var(--or);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</div><div><strong style="font-size:13px">Validation</strong> <span style="font-size:11px;color:var(--mu)">· 2 months</span></div></div>
+              <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onclick="goTo(7);setTimeout(()=>showStep(2),300)"><div style="width:26px;height:26px;background:var(--or);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</div><div><strong style="font-size:13px">Pre-Implementation</strong> <span style="font-size:11px;color:var(--mu)">· Varies</span></div></div>
+              <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onclick="goTo(7);setTimeout(()=>showStep(3),300)"><div style="width:26px;height:26px;background:var(--or);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</div><div><strong style="font-size:13px">Post-Implementation</strong> <span style="font-size:11px;color:var(--mu)">· 1 month</span></div></div>
+              <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onclick="goTo(7);setTimeout(()=>showStep(4),300)"><div style="width:26px;height:26px;background:#7E3517;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">5</div><div><strong style="font-size:13px">Sustainability</strong> <span style="font-size:11px;color:var(--mu)">· Indefinite</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 7: PAT PHASE DETAIL — stepper -->
+      <div class="slide">
+        <div class="sl-num">07 · PAT Phases</div>
+        <div class="sl-title"><b>PAT Phase</b> Detail</div>
+        <div class="sl-sub">Click each phase to expand deliverables and actions.</div>
+        <div class="steps-row" id="steprow"></div>
+        <div id="step-panels"></div>
+      </div>
+
+      <!-- SLIDE 8: SITE READINESS — interactive checklist -->
+      <div class="slide">
+        <div class="sl-num">08 · Governance</div>
+        <div class="sl-title"><b>Site Readiness</b> Checklist</div>
+        <div class="sl-sub">Click each item to mark complete. All four domains must be satisfied before proceeding with deployment.</div>
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+          <div style="flex:1"><div style="font-size:13px;color:var(--mu);margin-bottom:6px">Overall readiness</div><div class="ck-bar"><div class="ck-fill" id="ov-f" style="width:0%"></div></div><div style="font-size:11px;color:var(--mu);margin-top:4px" id="ov-l">0 of 13 complete</div></div>
+          <div id="ov-s" style="font-size:13px;padding:7px 14px;border-radius:8px;background:var(--bg);color:var(--mu);font-weight:600">Not ready</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px" id="cklist"></div>
+        <div style="margin-top:20px"><div class="or-bar">Evaluation Outcomes</div><div class="g2"><div class="gr-box"><strong style="font-size:13px">All Criteria Met → Ready for Deployment</strong><p style="font-size:13px;margin-top:8px;line-height:1.5">Proceed with standardised implementation. Engage central DPI support and establish tracking for value realisation.</p></div><div class="rd-box"><strong style="font-size:13px">Criteria Unmet → Governance Escalation Required</strong><p style="font-size:13px;margin-top:8px;line-height:1.5">Do not proceed. All deviations require formal justification. Submit a formal business case to the governance body.</p></div></div></div>
+      </div>
+
+      <!-- SLIDE 9: BUSINESS VALUE -->
+      <div class="slide">
+        <div class="sl-num">09 · Value</div>
+        <div class="sl-title"><b>Business Value</b> — 2K + 5K</div>
+        <div class="sl-sub">Evidence of value delivered through DPI deployment at the Biologics site.</div>
+        <div class="note" style="margin-bottom:20px"><strong>Prerequisites:</strong> RAMAN installation complete at site · Process Pulse installed and validated</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px">
+          <div class="stat-big"><div class="n">↓</div><div class="l">Reduced batch duration = freed resources</div></div>
+          <div class="stat-big"><div class="n">✓</div><div class="l">Enabled consistent harvest operations</div></div>
+          <div class="stat-big"><div class="n">2%</div><div class="l">Increase in B7H3 overall titre</div></div>
+          <div class="stat-big"><div class="n">3 FTE</div><div class="l">Contributes via Raman Prediction plan</div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="lbl lbl-or">Estimated Cost</div><p style="font-size:22px;font-weight:300;color:var(--or)">£ XXXXXX</p><p style="font-size:13px;color:var(--mu);margin-top:6px">To be confirmed per site.</p></div>
+          <div class="card"><div class="lbl lbl-or">Implementation Stats</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><span style="background:#FEF9C3;color:#92400E;padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600">TIME — TBD</span><span style="background:#FEF9C3;color:#92400E;padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600">RESOURCE — TBD</span><span style="background:#FEF9C3;color:#92400E;padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600">ROI/YIELD — TBD</span></div></div>
+        </div>
+        <div class="note" style="margin-top:16px"><strong>Next steps:</strong> Include HOW — implementation plan (PAT and Digital Transfer Twin) — where these overlap in the end to end process.<br><em style="margin-top:4px;display:block">PAT: David A / Sameer / Yu &nbsp;·&nbsp; Digital Transfer Twin: Dena / Carolyn</em></div>
+      </div>
+
+      <!-- SLIDE 10: MODEL LIFECYCLE -->
+      <div class="slide">
+        <div class="sl-num">10 · Model Lifecycle</div>
+        <div class="sl-title"><b>Process Pulse</b> Model Lifecycle</div>
+        <div class="sl-sub">Three-stage lifecycle covering data foundations, development &amp; assurance, and deployment &amp; execution.</div>
+        <div class="note" style="margin-bottom:16px"><strong>Assumptions:</strong> RAMAN installation complete at site · Process Pulse configuration in place</div>
+        <div class="lc-g">
+          <div class="lc-c"><h4>① Data Foundations</h4><div class="lc-sub">1a. Data Collection</div><div class="lc-i">Where is data generated?</div><div class="lc-i">Is it GxP compliant?</div><div class="lc-i">Is collection structured for modelling?</div><div class="lc-sub">1b. Data Transfer</div><div class="lc-i">What network layer is data on?</div><div class="lc-i">Is secure transfer in place?</div><div class="lc-i">Does it integrate with existing pipeline?</div></div>
+          <div class="lc-c"><h4>② Model Development &amp; Assurance</h4><div class="lc-sub">2a. Model Development</div><div class="lc-i">Does the model reflect modality-level process assumptions?</div><div class="lc-i">Are 2k/5k scale differences accounted for?</div><div class="lc-i">Is design aligned to a defined value case?</div><div class="lc-sub">2b. Model Development Report</div><div class="lc-i">Are assumptions, inputs, outputs documented?</div><div class="lc-i">Are performance metrics defined?</div><div class="lc-sub">2c. Model Validation Report</div><div class="lc-i">Has site-level validation been completed?</div><div class="lc-i">Is change control clearly defined?</div></div>
+          <div class="lc-c"><h4>③ Deployment &amp; Execution</h4><div class="lc-sub">3a. Model Implementation</div><div class="lc-i">Where will the model sit (DCS, Process Pulse, dashboard)?</div><div class="lc-i">Does integration fit existing workflows?</div><div class="lc-sub">3b. Model Execution Protocol</div><div class="lc-i">When should the model be used?</div><div class="lc-i">What decisions does it inform?</div><div class="lc-i">What is the escalation pathway if outputs conflict?</div><div class="lc-sub">3c. Model Execution Report</div><div class="lc-i">Are yield and throughput improvements tracked?</div><div class="lc-i">Is value sustained and visible?</div></div>
+        </div>
+        <div class="adop"><div class="adop-i">✓ Defined governance &amp; exception process</div><div class="adop-i">✓ Clear ownership</div><div class="adop-i">✓ Training of process &amp; digital teams</div><div class="adop-i">✓ Workforce role adjustments</div><div class="adop-i">✓ Change and engagement activities</div></div>
+      </div>
+
+      <!-- SLIDE 11: MOSCOW — interactive selector -->
+      <div class="slide">
+        <div class="sl-num">11 · Framework</div>
+        <div class="sl-title"><b>MoSCoW</b> Prioritisation Framework</div>
+        <div class="sl-sub">Select a category to explore its definition and requirements in detail.</div>
+        <div class="mc-tabs">
+          <div class="mc-tab on" data-v="must" onclick="mcSelect('must',this)">Must Have</div>
+          <div class="mc-tab" data-v="should" onclick="mcSelect('should',this)">Should Have</div>
+          <div class="mc-tab" data-v="could" onclick="mcSelect('could',this)">Could Have</div>
+          <div class="mc-tab" data-v="wont" onclick="mcSelect('wont',this)">Won't Have</div>
+        </div>
+        <div id="mc-detail" class="mc-detail" data-v="must"></div>
+        <div class="g2" style="margin-top:20px">
+          <div class="hl-box"><div class="lbl">What is MoSCoW?</div><p style="font-size:13px;color:var(--mu);line-height:1.6">A structured prioritisation framework used to categorise requirements based on criticality and value. In DPI it helps sites and leaders determine which capabilities are mandatory, recommended, or optional.</p></div>
+          <div class="hl-box"><div class="lbl">Why use it?</div><div class="chevs"><div class="chev">Focus on proven, value-delivering capabilities</div><div class="chev">Alignment with mandated, platform-based standards</div><div class="chev">Efficient allocation of time, cost and resources</div><div class="chev">Transparent trade-offs during planning</div></div></div>
+        </div>
+      </div>
+
+      <!-- SLIDE 12: PERSONAS TABLE — accordion -->
+      <div class="slide">
+        <div class="sl-num">12 · People</div>
+        <div class="sl-title"><b>Personas</b> Full Table</div>
+        <div class="sl-sub">Click a phase row to expand roles and responsibilities.</div>
+        <div id="acc-personas"></div>
+      </div>
+
+      <!-- SLIDE 13: TEMPLATES -->
+      <div class="slide">
+        <div class="sl-num">13 · Resources</div>
+        <div class="sl-title"><b>Templates</b> &amp; Links</div>
+        <div class="sl-sub">Re-usable platform documents and guidance on when to apply them.</div>
+        <div class="g2" style="margin-bottom:20px">
+          <div class="card"><div class="lbl lbl-or">Available Resources</div><div class="chevs" style="margin-top:8px"><div class="chev">DPI dashboard → brief description → what it includes / when to use it</div><div class="chev">Work pack — project team will need to choose to go into project plan</div><div class="chev">Change control template — minimum standards of what should be included</div></div></div>
+          <div class="card"><div class="lbl lbl-or">Re-usable Platform Documents</div><div style="margin-top:8px;display:flex;flex-direction:column;gap:12px">
+            <div><p style="font-size:13px;font-weight:600">Model Introduction Document</p><p style="font-size:12px;color:var(--mu);margin-top:3px;line-height:1.5">Can be re-used if model is the same but used for another asset, or up-versioned to include a new model use-case.</p></div>
+            <div><p style="font-size:13px;font-weight:600">Platform Protocol</p><p style="font-size:12px;color:var(--mu);margin-top:3px;line-height:1.5">Can be re-used — ensure alignment with Model Introduction Document; up-version to align if needed.</p></div>
+            <div><p style="font-size:13px;font-weight:600">Periodic Review Protocol</p><p style="font-size:12px;color:var(--mu);margin-top:3px;line-height:1.5">Can be re-used — ensure alignment with Model Introduction Document; up-version to align if needed.</p></div>
+          </div></div>
+        </div>
+        <div class="cav"><strong>Note:</strong> Contact details, dashboard links, and work pack format to be finalised.</div>
+        <div style="margin-top:40px;border-top:1px solid var(--bd);padding-top:20px;text-align:center;font-size:12px;color:var(--mu)">This document is confidential and must not be shared outside of GSK without prior authorisation.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ARROWS -->
+  <button id="prev-btn" onclick="move(-1)">&#8592;</button>
+  <button id="next-btn" onclick="move(1)">&#8594;</button>
+
+  <!-- PROGRESS -->
+  <div id="progress"><div id="progress-fill"></div></div>
+
+  <!-- NAV FLOAT -->
+  <button id="nav-float" onclick="openNav()">
+    <div class="hb"><span></span><span></span><span></span></div>
+    Navigation
+  </button>
+</div>
+
+<!-- NAV MODAL -->
+<div id="nm">
+  <div id="nm-bd" onclick="closeNav()"></div>
+  <div id="nm-panel">
+    <div class="nm-head">
+      <div><h2><b>DPI Playbook</b> — Large Molecule Drug Substance</h2><p style="color:rgba(255,255,255,.6);font-size:12px;margin-top:4px">Select any section to navigate directly</p></div>
+      <button class="nm-close-btn" onclick="closeNav()">✕ Close</button>
+    </div>
+    <div class="nm-body" id="nm-body"></div>
+  </div>
+</div>
+
+<script>
+// ── PASSWORD ──
+document.getElementById('pi').addEventListener('keydown',function(e){if(e.key==='Enter')checkPw()});
+function checkPw(){
+  if(document.getElementById('pi').value.toLowerCase()==='gsk'){
+    var pw=document.getElementById('pw');
+    pw.classList.add('out');
+    setTimeout(function(){pw.style.display='none';document.getElementById('app').classList.add('on');initAll()},520);
+  } else {
+    document.getElementById('pe').textContent='Incorrect password.';
+    document.getElementById('pi').value='';
+    setTimeout(function(){document.getElementById('pe').textContent=''},2200);
+  }
+}
+
+// ── CAROUSEL ──
+var cur=0,total=13;
+function goTo(n){
+  if(n<0||n>=total)return;
+  cur=n;
+  document.getElementById('track').style.transform='translateX(-'+n+'00vw)';
+  document.getElementById('ctr').textContent=(n+1)+' / '+total;
+  document.getElementById('prev-btn').classList.toggle('hidden',n===0);
+  document.getElementById('next-btn').classList.toggle('hidden',n===total-1);
+  document.getElementById('progress-fill').style.width=Math.round((n/(total-1))*100)+'%';
+}
+function move(d){goTo(cur+d)}
+document.addEventListener('keydown',function(e){
+  if(e.target===document.getElementById('pi'))return;
+  if(e.key==='ArrowRight')move(1);
+  if(e.key==='ArrowLeft')move(-1);
+  if(e.key==='Escape')closeNav();
+});
+
+// swipe
+var sx=0;
+document.getElementById('carousel').addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+document.getElementById('carousel').addEventListener('touchend',function(e){
+  var dx=e.changedTouches[0].clientX-sx;
+  if(Math.abs(dx)>50)move(dx<0?1:-1);
+});
+
+// ── NAV MODAL ──
+var navGroups=[
+  {g:'Foundation',items:[
+    {i:0,num:'00',title:'Cover',desc:'Playbook intro & hero'},
+    {i:1,num:'01',title:'Executive Summary',desc:'Purpose, audiences, objectives'},
+    {i:2,num:'02',title:"What's Included",desc:'Sections, key features'},
+    {i:3,num:'03',title:'How to Use',desc:'Role-based step guides'},
+  ]},
+  {g:'Capabilities & Value',items:[
+    {i:4,num:'04',title:'Digital Capabilities',desc:'Filterable 2K+5K capability table'},
+    {i:9,num:'09',title:'Business Value',desc:'Biologics field results & ROI'},
+    {i:11,num:'11',title:'MoSCoW Framework',desc:'Interactive priority selector'},
+  ]},
+  {g:'PAT Implementation',items:[
+    {i:6,num:'06',title:'PAT Overview',desc:'Use cases & phase summary'},
+    {i:7,num:'07',title:'PAT Phase Detail',desc:'Interactive 5-phase stepper'},
+    {i:10,num:'10',title:'Model Lifecycle',desc:'Process Pulse implementation'},
+  ]},
+  {g:'People & Governance',items:[
+    {i:5,num:'05',title:'Site Deployment Personas',desc:'RACI lanes — 3 phases'},
+    {i:8,num:'08',title:'Site Readiness Checklist',desc:'Interactive readiness tracker'},
+    {i:12,num:'12',title:'Personas — Full Table',desc:'Accordion RACI table'},
+    {i:13,num:'13',title:'Templates & Links',desc:'Re-usable platform documents'},
+  ]}
+];
+function buildNav(){
+  var body=document.getElementById('nm-body');
+  navGroups.forEach(function(grp){
+    var lbl=document.createElement('div');lbl.className='nm-group-lbl';lbl.textContent=grp.g;body.appendChild(lbl);
+    var grid=document.createElement('div');grid.className='nm-grid';
+    grp.items.forEach(function(item){
+      var c=document.createElement('div');c.className='nm-card';c.id='nmc-'+item.i;
+      c.innerHTML='<div class="nm-card-num">'+item.num+'</div><div class="nm-card-title">'+item.title+'</div><div class="nm-card-desc">'+item.desc+'</div>';
+      c.onclick=function(){closeNav();goTo(item.i)};
+      grid.appendChild(c);
+    });
+    body.appendChild(grid);
+  });
+}
+function openNav(){
+  document.querySelectorAll('.nm-card').forEach(function(c){c.classList.remove('cur')});
+  var a=document.getElementById('nmc-'+cur);if(a)a.classList.add('cur');
+  document.getElementById('nm').classList.add('open');
+}
+function closeNav(){document.getElementById('nm').classList.remove('open')}
+
+// ── HOW-TO TABS ──
+function htab(id,btn){
+  document.querySelectorAll('#htabs .tab').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('[id^="ht-"]').forEach(function(p){p.classList.remove('on')});
+  btn.classList.add('on');
+  document.getElementById('ht-'+id).classList.add('on');
+}
+
+// ── CAPABILITIES ──
+var caps=[
+  {z:'up',area:'N-2',name:'Reduce Offline Testing (FTE) — VCC',tech:'Capacitance',p:'must',t:'2 months',r:'×1 Modeller'},
+  {z:'up',area:'N-2',name:'Decrease Batch Cycle Time',tech:'Capacitance & Cell Growth Model',p:'could',t:'—',r:'—'},
+  {z:'up',area:'N-1',name:'Reduce Offline Testing (FTE) — VCC',tech:'Capacitance',p:'must',t:'2 months',r:'×1 Modeller'},
+  {z:'up',area:'N-1',name:'Optimise Transfer Time (Yield)',tech:'Capacitance & Cell Growth Model',p:'must',t:'2 months',r:'×1 Modeller'},
+  {z:'up',area:'Production Bioreactor',name:'Reduce Offline Testing (FTE) — Titre',tech:'Raman Predictive Models',p:'must',t:'2 months',r:'×1 Modeller'},
+  {z:'up',area:'Production Bioreactor',name:'Closed Loop Daily Bolus Feeding — Glucose',tech:'Raman Predictive Models & Feedback Control',p:'must',t:'2 months',r:'×1 Modeller'},
+  {z:'up',area:'Production Bioreactor',name:'Reduce Offline Testing (FTE) — VCC',tech:'Capacitance',p:'could',t:'2 months',r:'×1 Modeller'},
+  {z:'dn',area:'Ultrafiltration / Diafiltration',name:'Reduce Offline Testing (FTE)',tech:'UV-Vis',p:'could',t:'—',r:'—'},
+  {z:'dn',area:'—',name:'Implementation of Online Testing',tech:'—',p:'could',t:'—',r:'—'},
+];
+function renderCaps(f){
+  var el=document.getElementById('cap-list');el.innerHTML='';
+  caps.forEach(function(c){
+    if(f==='all'||f===c.z||f===c.p){
+      var d=document.createElement('div');
+      d.style.cssText='background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center';
+      var pTag=c.p==='must'?'<span class="pill pm">Must Have</span>':c.p==='should'?'<span class="pill ps">Should Have</span>':'<span class="pill pc">Could Have</span>';
+      var zTag=c.z==='up'?'<span style="font-size:10px;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:5px;font-weight:600">Upstream</span>':'<span style="font-size:10px;background:#F3E8FF;color:#7E22CE;padding:2px 8px;border-radius:5px;font-weight:600">Downstream</span>';
+      d.innerHTML='<div><p style="font-size:14px;font-weight:600;margin-bottom:3px">'+c.name+'</p><p style="font-size:12px;color:var(--mu)">'+c.tech+' &nbsp;·&nbsp; '+c.area+'</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+pTag+zTag+'<span style="font-size:11px;color:var(--mu)">'+c.t+'</span></div>';
+      el.appendChild(d);
+    }
+  });
+}
+function filterCap(f,btn){
+  document.querySelectorAll('.cf-btn').forEach(function(b){b.classList.remove('on')});
+  btn.classList.add('on');renderCaps(f);
+}
+
+// ── PAT STEPPER ──
+var patSteps=[
+  {label:'Foundations',dur:'Varies',blocks:[
+    {title:'Data Collection',body:'<ul style="padding-left:16px;font-size:13px;color:var(--mu);line-height:1.6;display:flex;flex-direction:column;gap:6px"><li><strong>Duration:</strong> Varies based on production schedule</li><li><strong>RAMAN:</strong> 5 batches recommended — allows flexibility where model retraining may be needed</li><li><strong>Capacitance:</strong> 3 batches recommended</li></ul>'},
+    {title:'Model Introduction Document',body:'<ul style="padding-left:16px;font-size:13px;color:var(--mu);line-height:1.6;display:flex;flex-direction:column;gap:6px"><li>Update the foundational document defining the model\'s purpose</li><li>Must outline question of interest, context of use, model level, and targeted performance objectives</li></ul>'}
+  ]},
+  {label:'Validation',dur:'2 months',blocks:[
+    {title:'Model Validation Protocol',body:'<p style="font-size:13px;color:var(--mu);line-height:1.6">Outlines detailed validation plan and acceptance criteria derived from the Model Introduction Document.</p>'},
+    {title:'Model Validation Report',body:'<p style="font-size:13px;color:var(--mu);line-height:1.6">Formally documents model development and validation process, including results and outcomes from the validation protocol.</p>'},
+    {title:'Model Risk Assessment',body:'<p style="font-size:13px;color:var(--mu);line-height:1.6">Structured evaluation of model impact to the manufacturing environment with respect to quality and compliance.</p>'}
+  ]},
+  {label:'Pre-Impl.',dur:'Varies',blocks:[
+    {title:'Update Documentation',body:'<div style="display:flex;flex-direction:column;gap:8px"><div class="card" style="padding:12px"><strong>Governing Documents</strong> — Update Control Strategy</div><div style="color:var(--or);text-align:center">↓</div><div class="card" style="padding:12px"><strong>Local Site Documents</strong> — Update Process Description Chart</div><div style="color:var(--or);text-align:center">↓</div><div class="card" style="padding:12px"><strong>Local Site Procedures</strong> — Update processing batch record</div></div>'},
+    {title:'Important Caveats',body:'<div class="cav"><ul style="padding-left:16px"><li style="margin-bottom:6px">Timelines vary depending on where the asset target is in its lifecycle</li><li>Impact to any filed parameters can affect timelines</li></ul></div>'}
+  ]},
+  {label:'Post-Impl.',dur:'1 month',blocks:[
+    {title:'Model Execution Protocol',body:'<p style="font-size:13px;color:var(--mu);line-height:1.5;margin-bottom:10px">Required during the Change control window to ensure the process change has no impact to overall performance.</p><div class="gr-box" style="margin-bottom:8px"><strong style="font-size:12px">✓ Required — Process Changes (Major)</strong><p style="font-size:12px;margin-top:4px;color:var(--md)">E.g. transitioning from daily glucose feeds (offline) to continuous closed-loop feeding using a PAT model.</p></div><div class="rd-box"><strong style="font-size:12px">✗ Not Required — Measurement Substitutions (Minor)</strong><p style="font-size:12px;margin-top:4px;color:var(--md)">E.g. moving from offline glucose feed to Raman measurement with no process flow change.</p></div>'},
+    {title:'Model Execution Report',body:'<ul style="padding-left:16px;font-size:13px;color:var(--mu);line-height:1.6;display:flex;flex-direction:column;gap:6px"><li>Summarises implementation and outcomes of the execution protocol</li><li>Provides clear record of process and model performance in the operational setting</li><li>Final check before entering the Periodic Review Cycle</li></ul>'}
+  ]},
+  {label:'Sustainability',dur:'Indefinite',blocks:[
+    {title:'Periodic Review Cycle',body:'<p style="font-size:13px;color:var(--mu);line-height:1.5;margin-bottom:12px">Reviews document that the model continues to perform robustly throughout its lifecycle, comparing training test method measurements against PAT measurements.</p><div class="g3"><div class="card" style="padding:12px"><div class="lbl lbl-or">Structured Frequency</div><p style="font-size:12px;color:var(--mu)">Timing set out in Periodic Review Protocol document.</p></div><div class="card" style="padding:12px"><div class="lbl lbl-or">Formal Documentation</div><p style="font-size:12px;color:var(--mu)">Each review documented after protocol execution.</p></div><div class="card" style="padding:12px"><div class="lbl lbl-or">Lifecycle Focus</div><p style="font-size:12px;color:var(--mu)">Ensures robust model accuracy throughout its entire operational life.</p></div></div><div class="note" style="margin-top:10px;font-size:12px">Cycle: <strong>Data collection → Data analysis → Data evaluation</strong></div>'}
+  ]}
+];
+var activeStep=0;
+function buildPAT(){
+  var row=document.getElementById('steprow'),panels=document.getElementById('step-panels');
+  patSteps.forEach(function(s,i){
+    var btn=document.createElement('button');
+    btn.className='step-btn'+(i===0?' on':'');
+    btn.innerHTML='<div class="sn">'+(i+1)+'</div><div class="sl">'+s.label+'</div><div class="sd">'+s.dur+'</div>';
+    btn.onclick=function(){showStep(i)};
+    row.appendChild(btn);
+    var panel=document.createElement('div');
+    panel.id='sp'+i;panel.className='step-content'+(i===0?' on':'');
+    var inner='';
+    s.blocks.forEach(function(b){inner+='<div class="card"><div class="lbl lbl-or">'+b.title+'</div><div style="margin-top:8px">'+b.body+'</div></div>'});
+    panel.innerHTML=inner;
+    panels.appendChild(panel);
+  });
+}
+function showStep(i){
+  activeStep=i;
+  document.querySelectorAll('.step-btn').forEach(function(b,j){b.classList.toggle('on',j===i)});
+  document.querySelectorAll('.step-content').forEach(function(p,j){p.classList.toggle('on',j===i)});
+}
+
+// ── CHECKLIST ──
+var ckGroups=[
+  {g:'Technology Readiness',items:['Raman equipment capability enabled?','Model Management software validated? (e.g. Process Pulse)','Capacitance equipment capability enabled?','Automation system and PAT communication enabled?','Data flow set-up enabled?']},
+  {g:'Data Readiness',items:['Required quantity of PAT batch data available?','Model input data accessible?','Data pipeline established?','Data quality standards met?']},
+  {g:'Operational Readiness',items:['Change Control owner assigned?','Change Control complete?','Model owner identified?','Required knowledge transfer and training completed?']},
+  {g:'Governance Readiness',items:['Where site does not meet criteria, has a business case been approved?']}
+];
+var ckState={},ckTotal=0;
+function buildChecklist(){
+  var cont=document.getElementById('cklist');
+  ckGroups.forEach(function(g){
+    ckTotal+=g.items.length;
+    var div=document.createElement('div');div.className='card';
+    var k=g.g.replace(/ /g,'_');
+    var rows=g.items.map(function(item,j){
+      var key=k+'_'+j;ckState[key]=false;
+      return'<div class="ck-row" onclick="toggleCk(\''+key+'\')"><div class="ck-box" id="cb-'+key+'"></div><span class="ck-lbl" id="cl-'+key+'">'+item+'</span></div>';
+    }).join('');
+    div.innerHTML='<div class="lbl lbl-or">'+g.g+'</div>'+rows+'<div class="ck-bar"><div class="ck-fill" id="cp-'+k+'" style="width:0%"></div></div><div style="font-size:11px;color:var(--mu);margin-top:4px" id="clb-'+k+'">0 of '+g.items.length+' complete</div>';
+    cont.appendChild(div);
+  });
+}
+function toggleCk(key){
+  ckState[key]=!ckState[key];
+  var cb=document.getElementById('cb-'+key),cl=document.getElementById('cl-'+key);
+  if(ckState[key]){cb.classList.add('on');cb.textContent='✓';cl.classList.add('on')}
+  else{cb.classList.remove('on');cb.textContent='';cl.classList.remove('on')}
+  var done=Object.values(ckState).filter(Boolean).length,pct=Math.round(done/ckTotal*100);
+  document.getElementById('ov-f').style.width=pct+'%';
+  document.getElementById('ov-l').textContent=done+' of '+ckTotal+' complete';
+  var st=document.getElementById('ov-s');
+  if(pct===100){st.textContent='✓ Ready';st.style.background='#F0FDF4';st.style.color='#15803D'}
+  else if(pct>=70){st.textContent='Nearly ready';st.style.background='#FFF8E1';st.style.color='#D97706'}
+  else{st.textContent='Not ready';st.style.background='#F8F7F4';st.style.color='var(--mu)'}
+  ckGroups.forEach(function(g){
+    var k=g.g.replace(/ /g,'_');
+    var gd=g.items.filter(function(_,j){return ckState[k+'_'+j]}).length;
+    var cp=document.getElementById('cp-'+k),clb=document.getElementById('clb-'+k);
+    if(cp)cp.style.width=Math.round(gd/g.items.length*100)+'%';
+    if(clb)clb.textContent=gd+' of '+g.items.length+' complete';
+  });
+}
+
+// ── MOSCOW ──
+var mcData={
+  must:{title:'Must Have — Non-negotiable capabilities',items:['Mandated, platform-aligned capabilities required to ensure compliance with DPI standards','Deliver proven operational value','Risk mitigation and governance alignment','Failure to deploy would introduce unacceptable risk and require formal exception approval']},
+  should:{title:'Should Have — High-value, strongly recommended',items:['Deliver significant additional value but may depend on site readiness, data maturity, and timing within the product lifecycle','Improve optimisation, speed and insight','Not mandatory in all cases']},
+  could:{title:'Could Have — Optional value enhancers',items:['Provide incremental or exploratory value','May support innovation or continuous improvement','Deployed where capacity and maturity allow','Should not delay delivery of Must or Should capabilities']},
+  wont:{title:"Won't Have — Acknowledged but not included",items:['Acknowledged as potentially valuable but will not be implemented for this asset','May be revisited in a future phase','Should not distract from Must, Should, or Could priorities']}
+};
+var mcCur='must';
+function mcSelect(v,btn){
+  mcCur=v;
+  document.querySelectorAll('.mc-tab').forEach(function(t){t.classList.remove('on')});
+  btn.classList.add('on');
+  var d=document.getElementById('mc-detail');
+  d.setAttribute('data-v',v);
+  var data=mcData[v];
+  d.innerHTML='<h3>'+data.title+'</h3><ul style="padding-left:16px;display:flex;flex-direction:column;gap:7px;margin-top:8px">'+data.items.map(function(i){return'<li style="font-size:13px;line-height:1.5">'+i+'</li>'}).join('')+'</ul>';
+}
+function initMC(){mcSelect('must',document.querySelector('.mc-tab[data-v="must"]'))}
+
+// ── ACCORDION PERSONAS ──
+var accData=[
+  {phase:'Innovation / Exploration — Proven Technologies',roles:[{r:'Data Scientists',d:'Exploring data and building foundational predictive models'},{r:'DPI Team',d:'Collaborate to identify high-value digital opportunities'},{r:'Molecule Stewards',d:'Select which models to use, based on the MoSCoW categorisation'}]},
+  {phase:'Innovation / Exploration — New Technologies',roles:[{r:'Data Scientists',d:'Exploring new technologies, data and building foundational predictive models'},{r:'DPI Team',d:'Collaborate on new technology exploration'},{r:'Molecule Stewards',d:'Select models based on MoSCoW; provide evidence of business and process value to Governance Board for approval when new technologies are selected'}]},
+  {phase:'Approval & Governance',roles:[{r:'DPI Governance',d:'Review evidence generated by R&D and prioritise capabilities. Determine official network standards.'},{r:'Business Leaders',d:'Approve investment for site rollout — Go / No Go Decision'}]},
+  {phase:'Manufacturing, Deployment & Industrialisation',roles:[{r:'DPI Team (A)',d:'Accountable — owns local deployment execution'},{r:'Modeller (R)',d:'Responsible — builds, trains and maintains site specific models'},{r:'Site Lead (I)',d:'Informed — approves adoption, allocates resources, aligns operational priorities'},{r:'Data Scientists (C)',d:'Consulted — strategic advisors'},{r:'Molecule Stewards',d:'Validate models built'},{r:'Project Planning Team',d:'Bridge between leadership and implementation; responsible for structured management to transition proven digital-enabled process into active operations'},{r:'Project Delivery Team (Data & AI / PAT)',d:'Specialists implementing technology and ensuring reliable data flow, ultimately industrialising the tools'}]},
+  {phase:'All Phases',roles:[{r:'End Users',d:'Those interacting with the tool to optimise'}]}
+];
+function buildAcc(){
+  var cont=document.getElementById('acc-personas');
+  accData.forEach(function(item,i){
+    var wrap=document.createElement('div');wrap.className='acc-item';
+    var hd=document.createElement('div');hd.className='acc-hd';
+    hd.innerHTML='<span>'+item.phase+'</span><span class="acc-arr" id="arr-'+i+'">›</span>';
+    var body=document.createElement('div');body.className='acc-body';body.id='ab-'+i;
+    body.innerHTML='<table class="dt"><thead><tr><th>Role</th><th>Responsibility</th></tr></thead><tbody>'+item.roles.map(function(r){return'<tr><td style="font-weight:600;white-space:nowrap">'+r.r+'</td><td>'+r.d+'</td></tr>'}).join('')+'</tbody></table>';
+    hd.onclick=function(){
+      var open=body.classList.contains('on');
+      document.querySelectorAll('.acc-body').forEach(function(b){b.classList.remove('on')});
+      document.querySelectorAll('.acc-arr').forEach(function(a){a.classList.remove('on')});
+      if(!open){body.classList.add('on');document.getElementById('arr-'+i).classList.add('on')}
+    };
+    wrap.appendChild(hd);wrap.appendChild(body);cont.appendChild(wrap);
+  });
+}
+
+// ── INIT ──
+function initAll(){
+  goTo(0);
+  buildNav();
+  buildPAT();
+  buildChecklist();
+  initMC();
+  renderCaps('all');
+  buildAcc();
+}
+</script>
+</body>
+</html>
